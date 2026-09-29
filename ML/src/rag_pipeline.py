@@ -1,8 +1,8 @@
-from src.pdf_loader import extract_text_from_pdf
-from src.chunker import chunk_pages
-from src.embedder import create_embeddings
-from src.vector_store import VectorStore
-from src.retriever import retrieve
+from .pdf_loader import extract_text_from_pdf
+from .chunker import chunk_pages
+from .embedder import create_embeddings
+from .vector_store import VectorStore
+from .retriever import retrieve
 
 
 class RAGPipeline:
