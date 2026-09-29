@@ -1,5 +1,5 @@
-from src.embedder import create_embeddings
-from src.vector_store import VectorStore
+from .embedder import create_embeddings
+from .vector_store import VectorStore
 
 
 def retrieve(
