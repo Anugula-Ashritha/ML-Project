@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.rag_pipeline import RAGPipeline
+from .rag_pipeline import RAGPipeline
 
 
 class MLService:
