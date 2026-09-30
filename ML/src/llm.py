@@ -1,12 +1,10 @@
-import os
-from openai import OpenAI
+import ollama
+
+
+MODEL_NAME = "llama3.2:3b"
 
 
 def generate_answer(question: str, retrieved_chunks: list[dict]) -> dict:
-    """
-    Generate an answer using the user's question and retrieved document chunks.
-    """
-
     if not retrieved_chunks:
         return {
             "answer": "I could not find relevant information in the uploaded documents.",
@@ -23,8 +21,6 @@ def generate_answer(question: str, retrieved_chunks: list[dict]) -> dict:
         )
 
     context = "\n\n---\n\n".join(context_parts)
-
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     prompt = f"""
 You are an enterprise document assistant.
@@ -43,9 +39,14 @@ Document context:
 Give a clear and concise answer.
 """
 
-    response = client.responses.create(
-        model="gpt-5.6",
-        input=prompt
+    response = ollama.chat(
+        model=MODEL_NAME,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
     )
 
     sources = [
@@ -57,6 +58,6 @@ Give a clear and concise answer.
     ]
 
     return {
-        "answer": response.output_text,
+        "answer": response["message"]["content"],
         "sources": sources
     }
