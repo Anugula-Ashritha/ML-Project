@@ -10,13 +10,17 @@ from ML.src.llm import generate_answer
 from ML.src.ml_service import ml_service
 
 
-def ingest_document(file_path: str) -> dict:
-    """
-    Add an uploaded PDF to the existing ML/RAG knowledge base.
-    """
+def ingest_document(
+    file_path: str,
+    original_filename: str | None = None
+) -> dict:
+    """Add an uploaded PDF to the ML/RAG knowledge base."""
 
     try:
-        return ml_service.add_document(file_path)
+        return ml_service.add_document(
+            file_path,
+            original_filename=original_filename
+        )
     except Exception as exc:
         raise RuntimeError(
             f"Failed to ingest document: {file_path}"
@@ -24,27 +28,19 @@ def ingest_document(file_path: str) -> dict:
 
 
 def answer_question(question: str) -> dict:
-    """
-    Retrieve relevant chunks from the existing ML/RAG knowledge base
-    and generate an answer using the existing LLM integration.
-    """
+    """Retrieve relevant chunks and generate an evidence-based answer."""
 
-    search_result = ml_service.search(question, top_k=3)
-    retrieved_chunks = search_result["results"]
-
-    return generate_answer(question, retrieved_chunks)
+    search_result = ml_service.search(question, top_k=5)
+    return generate_answer(question, search_result["results"])
 
 
 def generate_report(topic: str | None = None) -> dict:
-    """
-    Generate a simple knowledge-base report using the existing
-    retrieval and LLM pipeline. No fake document data is used.
-    """
+    """Generate a report from retrieved knowledge-base content."""
 
     report_topic = topic or "Knowledge Base Summary"
     question = topic or "Summarize the uploaded documents."
 
-    search_result = ml_service.search(question, top_k=3)
+    search_result = ml_service.search(question, top_k=5)
     result = generate_answer(question, search_result["results"])
 
     return {

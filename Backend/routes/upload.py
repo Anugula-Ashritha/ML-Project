@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 
 from services.rag_service import ingest_document
 from services.document_store import add_document
@@ -10,14 +10,16 @@ from services.document_store import add_document
 router = APIRouter()
 
 UPLOAD_DIR = "uploads"
-
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
-    # Check file type
-    if not file.filename.lower().endswith(".pdf"):
+async def upload_document(
+    file: UploadFile = File(...),
+    title: str | None = Form(default=None),
+    category: str | None = Form(default=None)
+):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=400,
             detail={
@@ -29,29 +31,28 @@ async def upload_document(file: UploadFile = File(...)):
             }
         )
 
-    # Generate unique document ID
     document_id = f"doc_{uuid.uuid4().hex[:8]}"
+    file_path = os.path.join(UPLOAD_DIR, f"{document_id}.pdf")
 
-    # Create safe file path
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        f"{document_id}.pdf"
-    )
-
-    # Save uploaded PDF
     contents = await file.read()
 
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    # Send document to ML/RAG ingestion
-    result = ingest_document(file_path)
+    result = ingest_document(
+        file_path,
+        original_filename=file.filename
+    )
 
-    # Store document metadata
     document = {
         "id": document_id,
+        "title": title or file.filename.rsplit(".", 1)[0],
         "filename": file.filename,
-        "status": result["status"]
+        "category": category or "Operations",
+        "file_size": len(contents),
+        "chunk_count": result["chunks_added"],
+        "status": result["status"],
+        "stored_path": file_path
     }
 
     add_document(document)
