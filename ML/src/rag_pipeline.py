@@ -10,13 +10,17 @@ class RAGPipeline:
         self.vector_store = None
         self.documents = []
 
-    def add_pdf(self, pdf_path: str) -> int:
-        """
-        Load one PDF and add its chunks to the vector store.
-        Can be called multiple times for multiple PDFs.
-        """
+    def add_pdf(
+        self,
+        pdf_path: str,
+        source_name: str | None = None
+    ) -> int:
+        """Load one PDF and add its chunks to the vector store."""
 
-        pages = extract_text_from_pdf(pdf_path)
+        pages = extract_text_from_pdf(
+            pdf_path,
+            source_name=source_name
+        )
         chunks = chunk_pages(pages)
 
         if not chunks:
@@ -29,14 +33,12 @@ class RAGPipeline:
 
         self.vector_store.add(embeddings, chunks)
 
-        self.documents.append(pdf_path)
+        self.documents.append(source_name or pdf_path)
 
         return len(chunks)
 
-    def search(self, question: str, top_k: int = 3) -> list[dict]:
-        """
-        Search across all PDFs that have been added.
-        """
+    def search(self, question: str, top_k: int = 5) -> list[dict]:
+        """Search across all PDFs that have been added."""
 
         if self.vector_store is None:
             return []
