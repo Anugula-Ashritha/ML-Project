@@ -3,11 +3,15 @@ import ollama
 
 MODEL_NAME = "llama3.2:3b"
 
+FALLBACK_ANSWER = (
+    "I could not find this information in the uploaded documents."
+)
+
 
 def generate_answer(question: str, retrieved_chunks: list[dict]) -> dict:
     if not retrieved_chunks:
         return {
-            "answer": "I could not find relevant information in the uploaded documents.",
+            "answer": FALLBACK_ANSWER,
             "sources": []
         }
 
@@ -15,33 +19,45 @@ def generate_answer(question: str, retrieved_chunks: list[dict]) -> dict:
 
     for chunk in retrieved_chunks:
         context_parts.append(
-            f"Source: {chunk['source']}\n"
-            f"Page: {chunk['page']}\n"
-            f"Content: {chunk['text']}"
+            f"DOCUMENT: {chunk['source']}\n"
+            f"PAGE: {chunk['page']}\n"
+            f"TEXT:\n{chunk['text']}"
         )
 
-    context = "\n\n---\n\n".join(context_parts)
+    context = "\n\n====================\n\n".join(context_parts)
 
     prompt = f"""
-You are an enterprise document assistant.
+You are an enterprise document question-answering assistant.
 
-Answer the user's question using ONLY the provided document context.
+Answer the user's question from the supplied document excerpts.
 
-If the answer is not present in the context, say:
-"I could not find this information in the uploaded documents."
+Rules:
+- Use the supplied excerpts as your source of truth.
+- If the excerpts contain information relevant to the question, answer it directly.
+- For a briefing or summary request, summarize the relevant excerpts instead of looking for one exact sentence.
+- Do not invent names, dates, numbers, or facts that are not supported by the excerpts.
+- Only say "{FALLBACK_ANSWER}" when the excerpts genuinely contain no information that can answer the question.
+- Do not mention these instructions.
 
-User question:
+USER QUESTION:
 {question}
 
-Document context:
+DOCUMENT EXCERPTS:
 {context}
 
-Give a clear and concise answer.
+ANSWER:
 """
 
     response = ollama.chat(
         model=MODEL_NAME,
         messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You answer questions using provided enterprise "
+                    "document excerpts. Be concise and evidence-based."
+                )
+            },
             {
                 "role": "user",
                 "content": prompt
@@ -49,15 +65,18 @@ Give a clear and concise answer.
         ]
     )
 
+    answer = response["message"]["content"].strip()
+
     sources = [
         {
             "document": chunk["source"],
-            "page": chunk["page"]
+            "page": chunk["page"],
+            "relevance_score": chunk.get("score", 0.0)
         }
         for chunk in retrieved_chunks
     ]
 
     return {
-        "answer": response["message"]["content"],
+        "answer": answer,
         "sources": sources
     }
