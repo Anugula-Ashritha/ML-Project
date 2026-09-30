@@ -8,17 +8,20 @@ model = SentenceTransformer(MODEL_NAME)
 
 def create_embeddings(chunks: list[dict]) -> list[list[float]]:
     """
-    Convert chunk text into numerical embeddings.
+    Convert chunk text into normalized embedding vectors.
 
-    Returns:
-        A list of embedding vectors, one for each chunk.
+    Normalization lets FAISS use inner-product search as cosine similarity.
     """
+
+    if not chunks:
+        return []
 
     texts = [chunk["text"] for chunk in chunks]
 
     embeddings = model.encode(
         texts,
-        convert_to_numpy=True
+        convert_to_numpy=True,
+        normalize_embeddings=True
     )
 
     return embeddings.tolist()
