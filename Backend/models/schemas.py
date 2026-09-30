@@ -9,6 +9,7 @@ class ChatRequest(BaseModel):
 class Source(BaseModel):
     document: str
     page: int
+    relevance_score: float | None = None
 
 
 class ChatResponse(BaseModel):
