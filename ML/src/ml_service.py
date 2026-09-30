@@ -7,28 +7,31 @@ class MLService:
     def __init__(self):
         self.rag = RAGPipeline()
 
-    def add_document(self, pdf_path: str) -> dict:
-        """
-        Add a PDF document to the RAG knowledge base.
-        """
+    def add_document(
+        self,
+        pdf_path: str,
+        original_filename: str | None = None
+    ) -> dict:
+        """Add a PDF document to the RAG knowledge base."""
 
         path = Path(pdf_path)
 
         if not path.exists():
             raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-        chunks_added = self.rag.add_pdf(str(path))
+        chunks_added = self.rag.add_pdf(
+            str(path),
+            source_name=original_filename or path.name
+        )
 
         return {
-            "document": path.name,
+            "document": original_filename or path.name,
             "chunks_added": chunks_added,
-            "status": "success"
+            "status": "success" if chunks_added > 0 else "empty"
         }
 
-    def search(self, question: str, top_k: int = 3) -> dict:
-        """
-        Search the knowledge base for relevant document chunks.
-        """
+    def search(self, question: str, top_k: int = 5) -> dict:
+        """Search the knowledge base for relevant document chunks."""
 
         results = self.rag.search(
             question,
@@ -38,7 +41,8 @@ class MLService:
         sources = [
             {
                 "document": result["source"],
-                "page": result["page"]
+                "page": result["page"],
+                "relevance_score": result.get("score", 0.0)
             }
             for result in results
         ]
